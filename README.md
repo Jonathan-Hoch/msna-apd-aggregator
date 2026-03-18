@@ -14,5 +14,4 @@ This tool automates the aggregation of multi-sheet Excel exports from Microneuro
 3. Run the app: `python analyze.py`
 
 ## Technical Architecture
-Built with Python using `Pandas` for data transformation and `OpenPyXL` for conditional formatting.# msna-apd-aggregator
-Automated ETL pipeline for MSNA burst analysis with statistical outlier detection. 
+Built with Python using `Pandas` for data transformation and `OpenPyXL` for conditional formatting.
