@@ -1,0 +1,163 @@
+import pandas as pd
+import openpyxl
+import os
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
+from openpyxl.styles import Font, PatternFill, Alignment
+from pathlib import Path
+from datetime import datetime
+
+VERSION = "1.2.0"
+
+def process_data(input_path, output_path):
+    """Core logic to aggregate MSNA files and apply SD color-coding."""
+    input_dir = Path(input_path)
+    output_dir = Path(output_path)
+    
+    # Setup Output and Logs
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M')
+    output_file = output_dir / f"MSNA_Master_{timestamp}.xlsx"
+    log_file = output_dir / f"processing_log_{timestamp}.txt"
+    
+    rows = []
+    labels = None
+    log_entries = [f"MSNA Pipeline v{VERSION} - Run Date: {datetime.now()}\n", "-"*50]
+
+    excel_files = sorted(input_dir.glob("*.xlsx")) + sorted(input_dir.glob("*.xls"))
+    
+    if not excel_files:
+        raise ValueError("No Excel files (.xlsx or .xls) found in the selected input directory.")
+
+    for filepath in excel_files:
+        try:
+            # --- Sheet 1: General Info ---
+            df1 = pd.read_excel(filepath, sheet_name=0, header=0)
+            if labels is None:
+                labels = df1.columns.tolist()
+
+            file_duration_sec = df1.iloc[0, 0] if len(df1) >= 1 else None
+            data_row = df1.iloc[0].tolist() if len(df1) >= 1 else [None] * len(labels)
+
+            # --- Sheet 2: Burst Parameters ---
+            try:
+                df2 = pd.read_excel(filepath, sheet_name=1, header=0)
+                amp_vals    = pd.to_numeric(df2.iloc[:, 1], errors='coerce').dropna()
+                spikes_vals = pd.to_numeric(df2.iloc[:, 5], errors='coerce').dropna()
+                bins_vals   = pd.to_numeric(df2.iloc[:, 9], errors='coerce').dropna()
+
+                burst_amp = amp_vals.mean() if not amp_vals.empty else None
+                ap_burst  = spikes_vals.mean() if not spikes_vals.empty else None
+                cl_burst  = bins_vals.mean() if not bins_vals.empty else None
+                total_sp  = spikes_vals.sum() if not spikes_vals.empty else None
+                ap_freq   = (total_sp / file_duration_sec) * 60 if total_sp and file_duration_sec else None
+
+                log_entries.append(f"SUCCESS: {filepath.name}")
+            except Exception as e2:
+                log_entries.append(f"ERROR (Sheet 2) {filepath.name}: {e2}")
+                ap_burst = cl_burst = burst_amp = ap_freq = None
+
+            rows.append([filepath.stem] + data_row + [ap_burst, cl_burst, burst_amp, ap_freq, VERSION, datetime.now().strftime("%Y-%m-%d")])
+
+        except Exception as e:
+            log_entries.append(f"CRITICAL SKIP {filepath.name}: {e}")
+
+    # Create Master DataFrame
+    cols = ["File Name"] + labels + ["APs/Burst", "Clusters/Burst", "Burst Amp", "AP Freq", "Script_Ver", "Proc_Date"]
+    master_df = pd.DataFrame(rows, columns=cols)
+
+    # Statistical Calculations
+    stat_cols = ["APs/Burst", "Clusters/Burst", "Burst Amp", "AP Freq"]
+    stats_map = {}
+    for col in stat_cols:
+        master_df[col] = pd.to_numeric(master_df[col], errors='coerce')
+        stats_map[col] = {'mean': master_df[col].mean(), 'std': master_df[col].std()}
+
+    # --- Excel Formatting ---
+    master_df.to_excel(output_file, index=False, sheet_name="Master")
+    wb = openpyxl.load_workbook(output_file)
+    ws = wb.active
+
+    fills = {
+        "yellow": PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid"),
+        "orange": PatternFill(start_color="FFCC00", end_color="FFCC00", fill_type="solid"),
+        "red":    PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
+    }
+
+    # Apply Color Coding
+    for r_idx, row in enumerate(ws.iter_rows(min_row=2, max_row=ws.max_row), start=2):
+        for c_idx, cell in enumerate(row, start=1):
+            col_name = cols[c_idx-1]
+            if col_name in stat_cols and cell.value is not None:
+                val = float(cell.value)
+                m, s = stats_map[col_name]['mean'], stats_map[col_name]['std']
+                if s and s > 0:
+                    z = abs((val - m) / s)
+                    if z >= 3: cell.fill = fills["red"]
+                    elif z >= 2: cell.fill = fills["orange"]
+                    elif z >= 1: cell.fill = fills["yellow"]
+
+    wb.save(output_file)
+    with open(log_file, "w") as f:
+        f.write("\n".join(log_entries))
+    
+    return output_file
+
+# --- GUI Application ---
+class MSNA_App:
+    def __init__(self, root):
+        self.root = root
+        self.root.title(f"MSNA Data Pipeline v{VERSION}")
+        self.root.geometry("600x320")
+        
+        style = ttk.Style()
+        style.configure("TButton", font=("Arial", 10))
+        
+        # UI Elements
+        main_frame = ttk.Frame(root, padding="20")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        ttk.Label(main_frame, text="MSNA Automated Aggregator", font=("Arial", 14, "bold")).grid(row=0, column=0, columnspan=3, pady=10)
+
+        # Input Path
+        ttk.Label(main_frame, text="Input Folder (Raw APD Files):").grid(row=1, column=0, sticky="w")
+        self.input_entry = ttk.Entry(main_frame, width=50)
+        self.input_entry.grid(row=2, column=0, columnspan=2, pady=5)
+        ttk.Button(main_frame, text="Browse", command=self.get_input).grid(row=2, column=2, padx=5)
+
+        # Output Path
+        ttk.Label(main_frame, text="Output Folder (Master Sheet):").grid(row=3, column=0, sticky="w", pady=(10,0))
+        self.output_entry = ttk.Entry(main_frame, width=50)
+        self.output_entry.grid(row=4, column=0, columnspan=2, pady=5)
+        ttk.Button(main_frame, text="Browse", command=self.get_output).grid(row=4, column=2, padx=5)
+
+        # Run Button
+        self.run_btn = tk.Button(main_frame, text="RUN ANALYSIS", bg="#2f4f8f", fg="white", 
+                                font=("Arial", 12, "bold"), command=self.execute)
+        self.run_btn.grid(row=5, column=0, columnspan=3, pady=30, sticky="nsew")
+
+    def get_input(self):
+        folder = filedialog.askdirectory()
+        if folder: self.input_entry.delete(0, tk.END); self.input_entry.insert(0, folder)
+
+    def get_output(self):
+        folder = filedialog.askdirectory()
+        if folder: self.output_entry.delete(0, tk.END); self.output_entry.insert(0, folder)
+
+    def execute(self):
+        in_p = self.input_entry.get()
+        out_p = self.output_entry.get()
+        if not in_p or not out_p:
+            messagebox.showerror("Error", "Please select both input and output folders.")
+            return
+        
+        try:
+            final_file = process_data(in_p, out_p)
+            messagebox.showinfo("Success", f"Data Aggregated Successfully!\nFile: {os.path.basename(final_file)}")
+            os.startfile(os.path.dirname(final_file))
+        except Exception as e:
+            messagebox.showerror("Pipeline Error", str(e))
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = MSNA_App(root)
+    root.mainloop()
