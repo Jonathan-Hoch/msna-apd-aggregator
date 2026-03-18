@@ -12,7 +12,7 @@ This tool automates the aggregation of multi-sheet Excel exports from Microneuro
 - **Audit Logging:** Generates a timestamped log of all processed files for reproducibility.
 
 ## Installation
-1. Clone the repository: `git clone https://github.com/YOUR_USERNAME/msna-apd-aggregator.git`
+1. Clone the repository: `git clone https://github.com/Jonathan-Hoch/msna-apd-aggregator.git`
 2. Install dependencies: `pip install -r requirements.txt`
 3. Run the app: `python msna_aggregate.py`
 
