@@ -5,7 +5,11 @@ This tool automates the aggregation of multi-sheet Excel exports from Microneuro
 
 ## Key Features
 - **GUI Interface:** Simple folder selection for non-technical users.
+![GUI Interface](screenshots/FolderSelection.png)
+- Upon successful execution, the toolkit provides a custom-themed notification confirming the file creation and log generation.
+![Success State](screenshots/Success.png)
 - **Statistical QA:** Automatic Z-score flagging (1σ, 2σ, 3σ) of physiological outliers.
+![Master Spreadsheet Results](screenshots/XLS.pdf)
 - **Audit Logging:** Generates a timestamped log of all processed files for reproducibility.
 
 ## Installation
