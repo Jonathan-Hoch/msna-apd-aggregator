@@ -11,7 +11,7 @@ This tool automates the aggregation of multi-sheet Excel exports from Microneuro
 ## Installation
 1. Clone the repository: `git clone https://github.com/YOUR_USERNAME/msna-apd-aggregator.git`
 2. Install dependencies: `pip install -r requirements.txt`
-3. Run the app: `python msna-aggregate-full.py` OR 'python msna-aggregate.py'
+3. Run the app: `python msna-aggregate.py`
 
 ## Technical Architecture
 Built with Python using `Pandas` for data transformation and `OpenPyXL` for conditional formatting.
