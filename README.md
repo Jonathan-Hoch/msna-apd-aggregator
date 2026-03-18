@@ -1,7 +1,7 @@
 # MSNA APD Aggregator (v1.2.0)
 
 ## Overview
-This tool automates the aggregation of multi-sheet Excel exports from Microneurography (MSNA) action potential analysis. 
+This tool automates the aggregation of multi-sheet Excel exports from Microneurography (MSNA) action potential analysis. Example data (randomized with realistic values) are provided. 
 
 ## Key Features
 - **GUI Interface:** Simple folder selection for non-technical users.
