@@ -2,7 +2,7 @@
 
 ## Overview
 
-This tool automates the aggregation of multi-sheet Excel exports from muscle sympathetic nerve activity (MSNA) microneurography action potential duration (APD) analysis. Each input file represents a single recording; the tool merges all files in a folder into a single master spreadsheet (`APD_Master.xlsx`) and computes burst-level statistics across files. Example data (randomized with realistic values) are provided in the `example_data` folder.
+This tool automates the aggregation of multi-sheet Excel exports from muscle sympathetic nerve activity (MSNA) microneurography action potential detection software (APD) analysis. Each input file represents a single recording; the tool merges all files in a folder into a single master spreadsheet (`APD_Master.xlsx`) and computes burst-level statistics across files. Example data (randomized with realistic values) are provided in the `example_data` folder.
 
 ## Key Features
 
